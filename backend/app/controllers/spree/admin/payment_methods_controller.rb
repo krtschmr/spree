@@ -7,6 +7,10 @@ module Spree
 
       respond_to :html
 
+      def index
+        @payment_methods = PaymentMethod.order(position: :asc)
+      end
+
       def create
         @payment_method = params[:payment_method].delete(:type).constantize.new(payment_method_params)
         @object = @payment_method
