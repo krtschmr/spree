@@ -11,6 +11,9 @@ module Spree
     scope :available_on_back_end,  -> { active.where(display_on: [:back_end, :both]) }
 
     validates :name, presence: true
+    validates :transaction_minimum, Order::POSITIVE_MONEY_VALIDATION.merge(presence: false)
+    validates :transaction_maximum, Order::POSITIVE_MONEY_VALIDATION.merge(presence: false)
+    validate  :check_transaction_limits
 
     has_many :payments, class_name: "Spree::Payment", inverse_of: :payment_method
     has_many :credit_cards, class_name: "Spree::CreditCard"
@@ -72,6 +75,23 @@ module Spree
     # availability for concrete order.
     def available_for_order?(_order)
       true
+    end
+
+    def transaction_limits
+      {minimum: transaction_minimum, maximum: transaction_maximum}
+    end
+
+    # Checks if the total of an Order is within the defined Minimum and Maximum Transaction Amount 
+    def within_transaction_limits?(_order)
+      min_valid = transaction_minimum.to_f <= _order.total
+      max_valid = transaction_maximum ? transaction_maximum.to_f >_order.total : true
+      min_valid && max_valid
+    end
+
+    private
+
+    def check_transaction_limits
+      errors.add :transaction_maximum, Spree.t(:transaction_maximum_cant_be_less_or_equal_the_minimum) if transaction_maximum && transaction_maximum <= transaction_minimum.to_f
     end
   end
 end
